@@ -2,11 +2,7 @@ use crate::types::OwnershipClass;
 
 /// Infer ownership class from a struct's fields and generic parameters.
 /// `derives` should be the list of traits from `#[derive(...)]` on the type.
-pub fn infer(
-    fields: &syn::Fields,
-    generics: &syn::Generics,
-    derives: &[String],
-) -> OwnershipClass {
+pub fn infer(fields: &syn::Fields, generics: &syn::Generics, derives: &[String]) -> OwnershipClass {
     // A Copy type wrapping primitive fields is a handle, not an owner.
     if derives.contains(&"Copy".to_string()) {
         return OwnershipClass::Handle;
@@ -42,9 +38,8 @@ fn from_path(path: &syn::Path) -> Option<OwnershipClass> {
     let last = path.segments.last()?;
     match last.ident.to_string().as_str() {
         // Sole ownership of heap data
-        "Vec" | "Box" | "String" | "PathBuf" | "OsString"
-        | "HashMap" | "BTreeMap" | "HashSet" | "BTreeSet"
-        | "VecDeque" | "LinkedList" | "Cow" => Some(OwnershipClass::Owns),
+        "Vec" | "Box" | "String" | "PathBuf" | "OsString" | "HashMap" | "BTreeMap" | "HashSet"
+        | "BTreeSet" | "VecDeque" | "LinkedList" | "Cow" => Some(OwnershipClass::Owns),
 
         // Shared ownership
         "Arc" | "Rc" => Some(OwnershipClass::Shared),
@@ -89,7 +84,8 @@ mod tests {
 
     #[test]
     fn hashmap_field_infers_owns() {
-        let item: syn::ItemStruct = parse_quote! { struct S { map: std::collections::HashMap<String, u32> } };
+        let item: syn::ItemStruct =
+            parse_quote! { struct S { map: std::collections::HashMap<String, u32> } };
         assert_eq!(check(item, &[]), OwnershipClass::Owns);
     }
 

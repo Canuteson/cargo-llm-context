@@ -82,16 +82,16 @@ fn render_item(item: &ApiItem) -> String {
         out.push_str(&format!("    {}\n", method.signature));
     }
     if item.methods.len() > 8 {
-        out.push_str(&format!("    // ... {} more methods\n", item.methods.len() - 8));
+        out.push_str(&format!(
+            "    // ... {} more methods\n",
+            item.methods.len() - 8
+        ));
     }
     out.push_str("```\n\n");
 
     // Derives
     if !item.derives.is_empty() {
-        out.push_str(&format!(
-            "_Derives: {}_\n\n",
-            item.derives.join(", ")
-        ));
+        out.push_str(&format!("_Derives: {}_\n\n", item.derives.join(", ")));
     }
 
     // Ownership note: prefer explicit doc section, fall back to inferred label
