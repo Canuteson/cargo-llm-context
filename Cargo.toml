@@ -1,0 +1,22 @@
+[package]
+name = "cargo-llm-context"
+version = "0.1.0"
+edition = "2021"
+description = "Generate condensed, ownership-annotated API context files for LLM agents"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/Canuteson/cargo-llm-context"
+keywords = ["cargo", "llm", "documentation", "context", "codegen"]
+categories = ["development-tools::cargo-plugins", "command-line-utilities"]
+rust-version = "1.74"
+
+[[bin]]
+name = "cargo-llm-context"
+path = "src/main.rs"
+
+[dependencies]
+anyhow       = "1"
+cargo_metadata = "0.18"
+clap         = { version = "4", features = ["derive"] }
+quote        = "1"
+syn          = { version = "2", features = ["full", "visit"] }
