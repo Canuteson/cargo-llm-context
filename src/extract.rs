@@ -3,7 +3,6 @@ use anyhow::{Context, Result};
 use quote::ToTokens;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use syn::visit::Visit;
 
 pub fn extract_crate(root: &Path, crate_name: Option<&str>) -> Result<Vec<Module>> {
     let manifest = root.join("Cargo.toml");
@@ -33,7 +32,7 @@ pub fn extract_crate(root: &Path, crate_name: Option<&str>) -> Result<Vec<Module
 /// Re-exports using bare module-relative paths (e.g. `entity::Entity`) are internal but
 /// don't carry the `crate::/self::` prefix. After the full module tree is collected, we
 /// check if a re-export's first path segment matches a known module name and promote it.
-fn mark_internal_reexports(modules: &mut Vec<Module>) {
+fn mark_internal_reexports(modules: &mut [Module]) {
     let known_segments: HashSet<String> = modules
         .iter()
         .flat_map(|m| m.path.split("::").map(str::to_string))
@@ -56,8 +55,8 @@ fn collect_from_file(path: &Path, module_path: &[String]) -> Result<Vec<Module>>
     let content = std::fs::read_to_string(path)
         .with_context(|| format!("could not read {}", path.display()))?;
 
-    let file = syn::parse_file(&content)
-        .with_context(|| format!("failed to parse {}", path.display()))?;
+    let file =
+        syn::parse_file(&content).with_context(|| format!("failed to parse {}", path.display()))?;
 
     let mut result = Vec::new();
     let mut top_items: Vec<ApiItem> = Vec::new();
@@ -90,7 +89,10 @@ fn collect_from_file(path: &Path, module_path: &[String]) -> Result<Vec<Module>>
                 if let syn::Type::Path(tp) = imp.self_ty.as_ref() {
                     if let Some(name) = tp.path.get_ident() {
                         let methods = collect_impl_methods(imp);
-                        impl_map.entry(name.to_string()).or_default().extend(methods);
+                        impl_map
+                            .entry(name.to_string())
+                            .or_default()
+                            .extend(methods);
                     }
                 }
             }
@@ -142,8 +144,11 @@ fn collect_from_file(path: &Path, module_path: &[String]) -> Result<Vec<Module>>
     if !top_items.is_empty() || !reexports.is_empty() || module_doc.is_some() {
         let path_str = module_path.join("::");
         result.push(Module {
-            name: module_path.last().cloned().unwrap_or_else(|| "lib".into()),
-            path: if path_str.is_empty() { "lib".into() } else { path_str },
+            path: if path_str.is_empty() {
+                "lib".into()
+            } else {
+                path_str
+            },
             ownership_doc: module_doc,
             items: top_items,
             reexports,
@@ -193,7 +198,6 @@ fn collect_from_syn_file(file: &syn::File, module_path: &[String]) -> Vec<Module
     }
 
     vec![Module {
-        name: module_path.last().cloned().unwrap_or_else(|| "lib".into()),
         path: module_path.join("::"),
         ownership_doc: module_doc,
         items,
@@ -207,11 +211,7 @@ fn collect_struct(s: &syn::ItemStruct) -> ApiItem {
     let derives = extract_derives(&s.attrs);
     let ownership = crate::ownership::infer(&s.fields, &s.generics, &derives);
     let ownership_doc = extract_ownership_section(&s.attrs);
-    let sig = format!(
-        "pub struct {}{}",
-        s.ident,
-        s.generics.to_token_stream()
-    );
+    let sig = format!("pub struct {}{}", s.ident, s.generics.to_token_stream());
     ApiItem {
         name: s.ident.to_string(),
         kind: ItemKind::Struct,
@@ -294,7 +294,6 @@ fn collect_impl_methods(imp: &syn::ItemImpl) -> Vec<MethodSig> {
             if let syn::ImplItem::Fn(method) = item {
                 if is_public(&method.vis) {
                     return Some(MethodSig {
-                        name: method.sig.ident.to_string(),
                         signature: format!("pub {}", method.sig.to_token_stream()),
                     });
                 }
@@ -314,16 +313,18 @@ fn collect_reexports(u: &syn::ItemUse) -> Vec<Reexport> {
             let is_internal = path.starts_with("crate::")
                 || path.starts_with("self::")
                 || path.starts_with("super::");
-            Reexport { path, alias, is_glob, is_internal }
+            Reexport {
+                path,
+                alias,
+                is_glob,
+                is_internal,
+            }
         })
         .collect()
 }
 
 /// Recursively flatten a `UseTree` into `(canonical_path, alias, is_glob)` tuples.
-fn flatten_use_tree(
-    tree: &syn::UseTree,
-    prefix: &str,
-) -> Vec<(String, Option<String>, bool)> {
+fn flatten_use_tree(tree: &syn::UseTree, prefix: &str) -> Vec<(String, Option<String>, bool)> {
     match tree {
         syn::UseTree::Path(p) => {
             let next = if prefix.is_empty() {
@@ -449,26 +450,4 @@ fn extract_derives(attrs: &[syn::Attribute]) -> Vec<String> {
 
 fn is_public(vis: &syn::Visibility) -> bool {
     matches!(vis, syn::Visibility::Public(_))
-}
-
-// ── Visitor for impl blocks (used to attach methods post-hoc) ────────────────
-
-struct ImplVisitor<'a> {
-    map: &'a mut HashMap<String, Vec<MethodSig>>,
-}
-
-impl<'ast> Visit<'ast> for ImplVisitor<'_> {
-    fn visit_item_impl(&mut self, node: &'ast syn::ItemImpl) {
-        if node.trait_.is_some() {
-            return;
-        }
-        if let syn::Type::Path(tp) = node.self_ty.as_ref() {
-            if let Some(name) = tp.path.get_ident() {
-                self.map
-                    .entry(name.to_string())
-                    .or_default()
-                    .extend(collect_impl_methods(node));
-            }
-        }
-    }
 }

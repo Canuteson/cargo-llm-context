@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn fixture(name: &str) -> PathBuf {
@@ -30,7 +30,7 @@ fn run_tool(fixture_name: &str, test_name: &str, extra_args: &[&str]) -> PathBuf
     out
 }
 
-fn read(out: &PathBuf, file: &str) -> String {
+fn read(out: &Path, file: &str) -> String {
     std::fs::read_to_string(out.join(file))
         .unwrap_or_else(|_| panic!("output file {file} not found in {}", out.display()))
 }
@@ -56,7 +56,10 @@ fn shared_module_shows_shared_class() {
     let out = run_tool("ownership-fixture", "shared_module", &[]);
     let content = read(&out, "shared.md");
     assert!(content.contains("SharedCache"), "expected SharedCache type");
-    assert!(content.contains("shared"), "expected 'shared' class for SharedCache");
+    assert!(
+        content.contains("shared"),
+        "expected 'shared' class for SharedCache"
+    );
 }
 
 #[test]
@@ -84,7 +87,10 @@ fn internal_reexport_appears_in_lib_index() {
     // `pub use internal::Forwarded`. The tool cannot mark it internal because private
     // modules never enter the known-module set — it surfaces but as "external".
     // The important invariant is that it appears at all.
-    assert!(index.contains("Forwarded"), "expected Forwarded to appear via re-export");
+    assert!(
+        index.contains("Forwarded"),
+        "expected Forwarded to appear via re-export"
+    );
 }
 
 #[test]
@@ -92,7 +98,10 @@ fn ownership_module_doc_appears_in_output() {
     let out = run_tool("ownership-fixture", "module_doc", &[]);
     let content = read(&out, "owned.md");
     // The owned.rs module has an `## Ownership` doc comment.
-    assert!(content.contains("sole owners"), "expected module ownership doc to be included");
+    assert!(
+        content.contains("sole owners"),
+        "expected module ownership doc to be included"
+    );
 }
 
 #[test]

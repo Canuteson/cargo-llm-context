@@ -72,7 +72,10 @@ pub fn render_index(modules: &[Module]) -> String {
                 module.reexports.iter().partition(|r| r.is_internal);
 
             if !external.is_empty() {
-                let names: Vec<_> = external.iter().map(|r| format!("`{}`", r.exported_name())).collect();
+                let names: Vec<_> = external
+                    .iter()
+                    .map(|r| format!("`{}`", r.exported_name()))
+                    .collect();
                 let display = if names.len() > 6 {
                     format!("{} … ({} total)", names[..6].join(", "), names.len())
                 } else {
@@ -82,7 +85,10 @@ pub fn render_index(modules: &[Module]) -> String {
             }
 
             if !internal.is_empty() {
-                let names: Vec<_> = internal.iter().map(|r| format!("`{}`", r.exported_name())).collect();
+                let names: Vec<_> = internal
+                    .iter()
+                    .map(|r| format!("`{}`", r.exported_name()))
+                    .collect();
                 let display = if names.len() > 6 {
                     format!("{} … ({} total)", names[..6].join(", "), names.len())
                 } else {

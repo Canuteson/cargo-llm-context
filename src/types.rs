@@ -17,11 +17,11 @@ pub enum OwnershipClass {
 impl OwnershipClass {
     pub fn label(&self) -> &'static str {
         match self {
-            Self::Owns    => "owns",
-            Self::Shared  => "shared (Arc/Rc)",
+            Self::Owns => "owns",
+            Self::Shared => "shared (Arc/Rc)",
             Self::Borrows => "borrows",
-            Self::Handle  => "handle (Copy)",
-            Self::Opaque  => "opaque",
+            Self::Handle => "handle (Copy)",
+            Self::Opaque => "opaque",
         }
     }
 }
@@ -35,21 +35,8 @@ pub enum ItemKind {
     TypeAlias,
 }
 
-impl ItemKind {
-    pub fn keyword(&self) -> &'static str {
-        match self {
-            Self::Struct    => "struct",
-            Self::Enum      => "enum",
-            Self::Trait     => "trait",
-            Self::Function  => "fn",
-            Self::TypeAlias => "type",
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct MethodSig {
-    pub name: String,
     /// Full `pub fn foo(&self, ...) -> Bar` string.
     pub signature: String,
 }
@@ -98,8 +85,6 @@ impl Reexport {
 
 #[derive(Debug, Clone)]
 pub struct Module {
-    /// Last path segment: `"world"` for `hearth_core::ecs::world`.
-    pub name: String,
     /// Full `::` path relative to crate root, e.g. `"ecs::world"`.
     pub path: String,
     /// Text of `## Ownership` from the module-level doc comment, if present.
